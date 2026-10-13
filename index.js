@@ -69,27 +69,41 @@ app.use((req, res, next) => {
 // Global Error middleware
 app.use(globalError);
 
-// connect to database (Optimized for Serverless / Vercel)
+// Database connection function (Optimized for Serverless)
 let isConnected = false;
 
-async function connectDB() {
-  if (isConnected) return;
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
-    isConnected = true;
-    console.log("Connected to MongoDB successfully!");
-  } catch (err) {
-    console.error("Connection error:", err.message);
-  }
+const connectDB = async () => {
+    if (isConnected && mongoose.connection.readyState === 1) {
+        return;
+    }
+    try {
+        const db = await mongoose.connect(process.env.MONGO_URI, {
+            serverSelectionTimeoutMS: 5000, // تقليل وقت الانتظار لسرعة اكتشاف الأخطاء
+        });
+        isConnected = db.connections[0].readyState === 1;
+        console.log("Connected to MongoDB successfully!");
+    } catch (err) {
+        console.error("Connection error:", err.message);
+        throw err;
+    }
+};
+
+// Middleware للتأكد من الاتصال مع كل طلب في Vercel
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (error) {
+        res.status(500).json({ error: "Database connection failed", details: error.message });
+    }
+});
+
+// Start server locally
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`Server is running on http://localhost:${PORT}`);
+    });
 }
 
-connectDB();
-
-if (process.env.NODE_ENV !== "production") {
-  app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-  });
-}
-
-// تصدير الـ app لكي تقرأه Vercel كـ Serverless Function
+// Export for Vercel Serverless
 module.exports = app;
