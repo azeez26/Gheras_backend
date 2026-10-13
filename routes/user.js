@@ -7,7 +7,7 @@ const Router = express.Router();
 let {
   authentication,
   authorization,
-} = require("../Middlewares/authentication");
+} = require("../middlewares/authentication");
 let {
   registerUser,
   verifyEmail,
