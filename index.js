@@ -28,6 +28,7 @@ const globalError = require("./middlewares/globalError");
 const AppError = require("./utils/appError");
 
 const app = express();
+console.log("DEBUG: Updated index.js is running");
 const PORT = process.env.PORT || 3000;
 
 // Middlewares
